@@ -381,10 +381,8 @@ function RoUI:CreateWindow(config)
         corner(10):Parent = mainFrame
         stroke(Theme.Border):Parent = mainFrame
 
-        -- Animate in
-        mainFrame.Position = UDim2.new(0.5, 0, 0.5, 30)
-        mainFrame.BackgroundTransparency = 1
-        tween(mainFrame, { Position = UDim2.fromScale(0.5, 0.5), BackgroundTransparency = 0 }, 0.35, Enum.EasingStyle.Back):Play()
+        -- Hidden until loading/key overlay is dismissed
+        mainFrame.Visible = false
 
         -- Title bar
         local titleBar = Instance.new("Frame")
@@ -1232,27 +1230,34 @@ function RoUI:CreateWindow(config)
             return tab
         end -- AddTab
 
-        return win
+        return win, mainFrame
     end -- buildWindow
 
     -- --------------------------------------------------------
-    --  Key + Loading gate
+    --  Build the window IMMEDIATELY so AddTab/AddButton work
+    --  right away, then overlay loading/key screen on top.
     -- --------------------------------------------------------
+    -- Build window immediately (hidden) so AddTab/AddButton work synchronously
+    local builtWin, mainFrame = buildWindow()
+
+    local function revealWindow()
+        mainFrame.Visible = true
+        mainFrame.Position = UDim2.new(0.5, 0, 0.5, 30)
+        mainFrame.BackgroundTransparency = 1
+        tween(mainFrame, { Position = UDim2.fromScale(0.5, 0.5), BackgroundTransparency = 0 }, 0.35, Enum.EasingStyle.Back):Play()
+    end
+
     if requiredKey then
         ShowKeySystem(requiredKey, function(ok)
             if ok then
-                ShowLoading(windowTitle, function()
-                    buildWindow()
-                end)
+                ShowLoading(windowTitle, revealWindow)
             end
         end)
     else
-        ShowLoading(windowTitle, function()
-            buildWindow()
-        end)
+        ShowLoading(windowTitle, revealWindow)
     end
 
-    return win
+    return builtWin
 end
 
 return RoUI
